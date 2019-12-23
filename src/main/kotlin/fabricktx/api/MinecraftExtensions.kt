@@ -3,6 +3,7 @@
 package fabricktx.api
 
 import fabricktx.impl.throwDiagnosticMessage
+import net.fabricmc.fabric.api.container.ContainerProviderRegistry
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
@@ -15,8 +16,11 @@ import net.minecraft.recipe.Ingredient
 import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Hand
+import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import net.minecraft.util.shape.VoxelShape
+import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.IWorld
 import net.minecraft.world.World
 import kotlin.math.sqrt
@@ -73,7 +77,6 @@ fun IWorld.dropItemStack(stack: ItemStack, pos: Vec3d): ItemEntity =
 
 
 
-fun ItemStack.copy(count: Int): ItemStack = copy().apply { this.count = count }
 
 inline fun Ingredient.matches(itemStack: ItemStack) = test(itemStack)
 
@@ -87,5 +90,11 @@ fun PlayerEntity.isHoldingItemIn(hand: Hand): Boolean = !getStackInHand(hand).is
 
 fun PlayerEntity.offerOrDrop(itemStack: ItemStack) = inventory.offerOrDrop(world, itemStack)
 
+fun PlayerEntity.openGui(id: Identifier, pos: BlockPos) = ContainerProviderRegistry.INSTANCE.openContainer(id, this)
+{ it.writeBlockPos(pos) }
 
+operator fun VoxelShape.plus(other : VoxelShape) : VoxelShape = VoxelShapes.union(this,other)
 
+fun VoxelShape.union(vararg others :  VoxelShape) : VoxelShape = VoxelShapes.union(this,*others)
+
+fun BlockPos.adjacentPositions() = listOf(up(), down(), south(), west(), north(), east())

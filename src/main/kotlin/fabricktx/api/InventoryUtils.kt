@@ -36,6 +36,11 @@ fun World.getInventoryIn(pos: BlockPos): Inventory? {
 }
 
 
+fun Inventory.getAllItems(): List<ItemStack> = List(invSize) { getInvStack(it) }
+
+fun itemStackList(size: Int): DefaultedList<ItemStack> = DefaultedList.ofSize(size, ItemStack.EMPTY)
+fun ItemStack.equalsIgnoreCount(other: ItemStack) = ItemStack.areItemsEqual(this, other) && ItemStack.areTagsEqual(this, other)
+fun ItemStack.copy(count: Int): ItemStack = copy().apply { this.count = count }
 
 /**
  * Returns the remaining stack

@@ -21,9 +21,6 @@
       {
         "value": "fabricktx.impl.FabricKtxKt::initClient"
       }
-    ],
-    "rei_plugins": [
-      "spatialcrafting.compat.rei.ReiSpatialCraftingPlugin"
     ]
   },
   "depends": {

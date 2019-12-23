@@ -35,3 +35,4 @@ val Int.l get() = this.toLong()
 
 
 
+fun<T> buildList(init : MutableList<T>.() -> Unit) = mutableListOf<T>().apply(init)

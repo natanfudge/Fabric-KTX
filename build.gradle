@@ -146,10 +146,6 @@ publishing {
 
 
 Properties properties = new Properties()
-File propertiesFile = new File('gradle.properties')
-propertiesFile.withInputStream {
-    properties.load(it)
-}
 properties.put("total_version", total_version)
 
 
@@ -170,6 +166,7 @@ task updateTemplate(type: Copy) {
 bintrayUpload.dependsOn updateTemplate
 compileKotlin {
     kotlinOptions {
+        jvmTarget = "1.8"
         freeCompilerArgs = ["-XXLanguage:+InlineClasses","-Xuse-experimental=kotlin.time.ExperimentalTime"]
     }
 }
