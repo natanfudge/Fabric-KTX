@@ -1,5 +1,6 @@
 package fabricktx.api
 
+import fabricktx.impl.blockEntityTypeRegistry
 import fabricktx.impl.throwDiagnosticMessage
 import net.minecraft.block.Block
 import net.minecraft.block.BlockEntityProvider
@@ -14,27 +15,23 @@ import java.util.function.Supplier
 /**
  * A state block is a block with a block entity.
  *
- * In this file 4 classes:
- * Block superclasses: [MultipleStateBlock], [SingularStateBlock]
+ * In this file 3 classes:
+ * Block superclass: [StateBlock]
  * Block entity superclass: [KBlockEntity]
  * Block container: [BlockList]
  *
  * Whenever you make a block that has MULTIPLE instances, you MUST:
- * - Use [MultipleStateBlock] as the block superclass.
  * - Store blocks in a [BlockList] and register it.
  *
  * Whenever you make a block that has ONE instance (a singleton), you SHOULD:
- * - Use [SingularStateBlock] as the block superclass.
  * - Declare the block as an `object` and access and register it that way.
  *
- * In both cases [KBlockEntity] needs to be the [BlockEntity] superclass.
+ * In both cases [StateBlock] needs to be the [Block] superclass, and [KBlockEntity] needs to be the [BlockEntity] superclass.
  *
  * Registration is done thorough [CommonModInitializationContext.registerBlocks].
  */
 
-//internal typealias StateBlock<T>  = MultipleStateBlock<T>
-
-abstract class MultipleStateBlock<T : BlockEntity>(
+abstract class StateBlock<T : BlockEntity>(
         settings: Settings,
         /**
          * The SAME [blockEntityProducer] must be given for multiple blocks of the same class.
@@ -44,16 +41,10 @@ abstract class MultipleStateBlock<T : BlockEntity>(
     override fun createBlockEntity(view: BlockView) = blockEntityProducer()
 }
 
-abstract class SingularStateBlock<T : BlockEntity>(
-        settings: Settings,
-        /**
-         * The SAME [blockEntityProducer] must be given for multiple blocks of the same class.
-         */
-        blockEntityProducer: () -> T
-) : MultipleStateBlock<T>(settings, blockEntityProducer) {
-    val blockEntityType = BlockEntityType(Supplier { blockEntityProducer() }, setOf(this), null)
-    override fun createBlockEntity(view: BlockView) = blockEntityProducer()
-}
+val<T : BlockEntity> StateBlock<T>.blockEntityType
+    get()  : BlockEntityType<T> = blockEntityTypeRegistry[this]
+            ?: error("$this must be registered as an individual block to access its blockEntityType. " +
+                    "If its registered as a BlockList then it must get the BlockEntityType from the BlockList.")
 
 
 class BlockList<T : Block>(private val blocks: List<T>) : List<T> by blocks {
@@ -65,23 +56,29 @@ class BlockList<T : Block>(private val blocks: List<T>) : List<T> by blocks {
 
     val blockEntityType: BlockEntityType<*>? = run {
         val first = blocks.first()
-        if (first is MultipleStateBlock<*>) {
-            BlockEntityType(Supplier { first.blockEntityProducer() }, blocks.toSet(), null)
-        } else null
+        if (first is StateBlock<*>) first.blockEntityType(blocks)
+        else null
     }
 }
 
+@PublishedApi
+internal fun <T : Block,BE : BlockEntity> StateBlock<BE>.blockEntityType(blocks: List<T>): BlockEntityType<BE> =
+        BlockEntityType(Supplier { blockEntityProducer() }, blocks.toSet(), null)
+
 abstract class KBlockEntity private constructor(type: BlockEntityType<*>) : BlockEntity(type) {
-    constructor(block: SingularStateBlock<*>) : this(block.blockEntityType)
-    constructor(blocks: BlockList<*>) : this(blocks.blockEntityType
-            ?: error("Impossible because BlockWithBlockEntity defines a block entity type"))
+    constructor(block: StateBlock<*>) : this(blockEntityTypeRegistry[block]
+            ?: error("$block used the BlockList constructor for the block entity and registered it as a singular block," +
+                    " it must register the BlockList and not the individual blocks!")
+    )
+
+    constructor(blocks: BlockList<*>) : this(
+            blocks.blockEntityType
+                    ?: error("The BlockList must contain StateBlocks that correspond to this BlockEntity!")
+    )
 }
 
 inline fun <reified T : BlockEntity> BlockEntity?.assertIs(pos: BlockPos, world: IWorld): T {
     return this as? T ?: throwDiagnosticMessage(T::class.qualifiedName, this, pos, world)
 }
-
-
-
 
 

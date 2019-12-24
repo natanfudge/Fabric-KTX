@@ -4,6 +4,7 @@ package fabricktx.api
 
 import com.mojang.datafixers.util.Pair
 import fabricktx.impl.RegistryRegistrar
+import fabricktx.impl.blockEntityTypeRegistry
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap
 import net.fabricmc.fabric.api.client.keybinding.KeyBindingRegistry
 import net.fabricmc.fabric.api.client.model.ModelLoadingRegistry
@@ -53,21 +54,21 @@ inline fun initClientOnly(modId: String, init: ClientModInitializationContext.()
 
 
 class CommonModInitializationContext(
-    @PublishedApi internal val modId: String,
-    @PublishedApi internal val group: ItemGroup?
+        @PublishedApi internal val modId: String,
+        @PublishedApi internal val group: ItemGroup?
 ) {
 
     inline fun <T> registerTo(registry: Registry<T>, init: IdentifierRegistryContext<T>.() -> Unit) =
-        IdentifierRegistryContext(modId, RegistryRegistrar(registry)).init()
+            IdentifierRegistryContext(modId, RegistryRegistrar(registry)).init()
 
     inline fun registerBlocks(init: BlockListRegistryContext.() -> Unit) = BlockListRegistryContext(modId, group).init()
 
     fun registerContainer(containerId: Identifier, factory: (Int, PlayerInventory, BlockContext) -> Container) {
         ContainerProviderRegistry.INSTANCE.registerFactory(containerId) { syncId, _, player, buf ->
             factory(
-                syncId,
-                player.inventory,
-                BlockContext.create(player.world, buf.readBlockPos())
+                    syncId,
+                    player.inventory,
+                    BlockContext.create(player.world, buf.readBlockPos())
             )
         }
     }
@@ -79,8 +80,8 @@ class ClientModInitializationContext(@PublishedApi internal val modId: String) {
     fun Block.setRenderLayer(renderLayer: RenderLayer) = BlockRenderLayerMap.INSTANCE.putBlock(this, renderLayer)
 
     fun <T : BlockEntity> registerBlockEntityRenderer(
-        be: BlockEntityType<T>,
-        rendererFactory: (BlockEntityRenderDispatcher?) -> BlockEntityRenderer<T>
+            be: BlockEntityType<T>,
+            rendererFactory: (BlockEntityRenderDispatcher?) -> BlockEntityRenderer<T>
     ) {
         BlockEntityRendererRegistry.INSTANCE.register(be, rendererFactory)
     }
@@ -98,17 +99,17 @@ class ClientModInitializationContext(@PublishedApi internal val modId: String) {
 
 
                         override fun bake(
-                            loader: ModelLoader?, textureGetter: Function<SpriteIdentifier, Sprite>?,
-                            rotationContainer: ModelBakeSettings?, modelId: Identifier?
+                                loader: ModelLoader?, textureGetter: Function<SpriteIdentifier, Sprite>?,
+                                rotationContainer: ModelBakeSettings?, modelId: Identifier?
                         ): BakedModel? =
-                            bakery()
+                                bakery()
 
                         override fun getTextureDependencies(
-                            unbakedModelGetter: Function<Identifier, UnbakedModel>?,
-                            unresolvedTextureReferences: MutableSet<Pair<String, String>>?
+                                unbakedModelGetter: Function<Identifier, UnbakedModel>?,
+                                unresolvedTextureReferences: MutableSet<Pair<String, String>>?
                         ):
                                 List<SpriteIdentifier> =
-                            textures.map { SpriteIdentifier(PlayerContainer.BLOCK_ATLAS_TEXTURE, it) }
+                                textures.map { SpriteIdentifier(PlayerContainer.BLOCK_ATLAS_TEXTURE, it) }
 
                     }
                 } else null
@@ -117,18 +118,18 @@ class ClientModInitializationContext(@PublishedApi internal val modId: String) {
     }
 
     fun <C : Container> registerScreen(
-        screenId: Identifier,
-        controllerFactory: (Int, PlayerInventory, BlockContext) -> C,
-        screenFactory: (C, PlayerEntity) -> AbstractContainerScreen<C>
+            screenId: Identifier,
+            controllerFactory: (Int, PlayerInventory, BlockContext) -> C,
+            screenFactory: (C, PlayerEntity) -> AbstractContainerScreen<C>
     ) {
         ScreenProviderRegistry.INSTANCE.registerFactory(screenId) { syncId, _, player, buf ->
             screenFactory(
-                controllerFactory(
-                    syncId,
-                    player.inventory,
-                    BlockContext.create(player.world, buf.readBlockPos())
-                ),
-                player
+                    controllerFactory(
+                            syncId,
+                            player.inventory,
+                            BlockContext.create(player.world, buf.readBlockPos())
+                    ),
+                    player
             )
         }
     }
@@ -141,25 +142,26 @@ class IdentifierRegistryContext<T>(private val namespace: String, private val re
 }
 
 class BlockListRegistryContext(@PublishedApi internal val namespace: String, @PublishedApi internal val group: ItemGroup?) {
-    inline fun <T : Block> T.withId(name: String, registerItem: Boolean = true) {
-        require(this is SingularStateBlock<*> || this !is MultipleStateBlock<*>) {
-            "$name belongs to a group of blocks, and therefore must be registered with the block list!"
-        }
-        val id = Identifier(namespace, name)
-        registerBlockWithItem(this, id, registerItem)
-        if (this is SingularStateBlock<*>) Registry.register(Registry.BLOCK_ENTITY, id, blockEntityType)
+    fun <T : Block> T.withId(name: String, registerItem: Boolean = true) {
+        registerBlockWithItem(this, Identifier(namespace, name), registerItem)
     }
 
-    inline infix fun <T : Block> T.withId(name: String) = withId(name, registerItem = true)
+    fun <BE : BlockEntity, T : StateBlock<BE>> T.withId(name: String, registerItem: Boolean = true) {
+        (this as Block).withId(name, registerItem)
+        Registry.register(Registry.BLOCK_ENTITY, Identifier(namespace, name), this.blockEntityType(listOf(this)).also { blockEntityTypeRegistry[this] = it })
+    }
+
+    // Overload needed because you can't have optional parameters with infix functions
+    inline infix fun <BE : BlockEntity, T : StateBlock<BE>> T.withId(name: String) = withId(name, registerItem = true)
 
     inline fun <T : Block> BlockList<T>.withId(registerItem: Boolean = true, nameProvider: (T) -> String) {
         for (block in this) {
             registerBlockWithItem(block, Identifier(namespace, nameProvider(block)), registerItem)
         }
         if (blockEntityType != null) Registry.register(
-            Registry.BLOCK_ENTITY,
-            Identifier(namespace, nameProvider(first())),
-            blockEntityType
+                Registry.BLOCK_ENTITY,
+                Identifier(namespace, nameProvider(first())),
+                blockEntityType
         )
     }
 
@@ -167,15 +169,16 @@ class BlockListRegistryContext(@PublishedApi internal val namespace: String, @Pu
     internal fun registerBlockWithItem(block: Block, id: Identifier, registerItem: Boolean) {
         Registry.register(Registry.BLOCK, id, block)
         if (registerItem) Registry.register(
-            Registry.ITEM, id, BlockItem(
+                Registry.ITEM, id, BlockItem(
                 block, Item.Settings().group(
-                    group
+                group
                         ?: ItemGroup.MISC
-                )
-            )
+        )
+        )
         )
     }
 }
+
 
 interface Registrar<T> {
     fun register(toRegister: T, id: Identifier)

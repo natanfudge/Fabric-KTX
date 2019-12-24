@@ -39,6 +39,8 @@ fun World.getInventoryIn(pos: BlockPos): Inventory? {
 fun Inventory.getAllItems(): List<ItemStack> = List(invSize) { getInvStack(it) }
 
 fun itemStackList(size: Int): DefaultedList<ItemStack> = DefaultedList.ofSize(size, ItemStack.EMPTY)
+private val emptyList : DefaultedList<ItemStack> = DefaultedList.of()
+fun itemStackList() = emptyList
 fun ItemStack.equalsIgnoreCount(other: ItemStack) = ItemStack.areItemsEqual(this, other) && ItemStack.areTagsEqual(this, other)
 fun ItemStack.copy(count: Int): ItemStack = copy().apply { this.count = count }
 

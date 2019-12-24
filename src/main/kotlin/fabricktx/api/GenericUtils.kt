@@ -36,3 +36,5 @@ val Int.l get() = this.toLong()
 
 
 fun<T> buildList(init : MutableList<T>.() -> Unit) = mutableListOf<T>().apply(init)
+
+inline fun<reified T> Any?.ifIs(callback : (T) -> Unit) = if(this is T) callback(this) else Unit
