@@ -1,13 +1,18 @@
 package fabricktx.impl
 
 import drawer.readFrom
-import fabricktx.api.*
+import fabricktx.api.C2SPacket
+import fabricktx.api.CommonModInitializationContext
+import fabricktx.api.KotlinPacket
+import fabricktx.api.S2CPacket
 import io.netty.buffer.Unpooled
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.modules.SerialModule
+import net.fabricmc.api.EnvType
 import net.fabricmc.fabric.api.network.ClientSidePacketRegistry
 import net.fabricmc.fabric.api.network.PacketContext
 import net.fabricmc.fabric.api.network.ServerSidePacketRegistry
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.Identifier
 import net.minecraft.util.PacketByteBuf
@@ -23,9 +28,10 @@ internal fun CommonModInitializationContext.registerClientToServerPacket(
     ServerSidePacketRegistry.INSTANCE.register(Identifier(modId, packetId), packetConsumer)
 }
 
-internal fun ClientModInitializationContext.registerServerToClientPacket(
+internal fun CommonModInitializationContext.registerServerToClientPacket(
         packetId: String, packetConsumer: (PacketContext, PacketByteBuf) -> Unit
 ) {
+    require(FabricLoader.getInstance().environmentType == EnvType.CLIENT) { "C2S packets must only be registered on the client!" }
     ClientSidePacketRegistry.INSTANCE.register(Identifier(modId, packetId), packetConsumer)
 }
 
@@ -40,19 +46,24 @@ internal fun sendPacketToServer(packetId: Identifier, packetBuilder: PacketByteB
     ClientSidePacketRegistry.INSTANCE.sendToServer(packetId, packet)
 }
 
-internal fun ClientModInitializationContext.registerS2C(serializer: KSerializer<out S2CPacket<*>>, modId : String,
+internal fun CommonModInitializationContext.registerS2C(serializer: KSerializer<out S2CPacket<*>>, modId: String,
                                                         context: SerialModule) {
+    // We put the modId into the packetModIds list for BOTH the client and the server, so they can both access it.
     NetworkingImpl.packetModIds[serializer] = modId
-    registerServerToClientPacket(serializer.packetId) { packetContext, packetByteBuf ->
-        serializer.readFrom(packetByteBuf, context = context).apply {
-            packetContext.taskQueue.execute {
-                use(packetContext)
+    if (FabricLoader.getInstance().environmentType == EnvType.CLIENT) {
+        // We register the packet itself ONLY to the client, because only the client needs to know about incoming packets.
+        registerServerToClientPacket(serializer.packetId) { packetContext, packetByteBuf ->
+            serializer.readFrom(packetByteBuf, context = context).apply {
+                packetContext.taskQueue.execute {
+                    use(packetContext)
+                }
             }
         }
     }
+
 }
 
-internal fun CommonModInitializationContext.registerC2S(serializer: KSerializer<out C2SPacket<*>>, modId : String,
+internal fun CommonModInitializationContext.registerC2S(serializer: KSerializer<out C2SPacket<*>>, modId: String,
                                                         context: SerialModule) {
     NetworkingImpl.packetModIds[serializer] = modId
     registerClientToServerPacket(serializer.packetId) { packetContext, packetByteBuf ->

@@ -17,9 +17,9 @@
     "fabric-ktx.mixins.json"
   ],
   "entrypoints": {
-    "client": [
+    "main": [
       {
-        "value": "fabricktx.impl.FabricKtxKt::initClient"
+        "value": "fabricktx.impl.FabricKtxKt::init"
       }
     ]
   },

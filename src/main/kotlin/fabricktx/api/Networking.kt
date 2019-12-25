@@ -29,7 +29,7 @@ interface TwoSidedPacket<T : KotlinPacket<T>> : S2CPacket<T>, C2SPacket<T>
  * Automatic Serializer Wrappers
  ******************************/
 
-fun ClientModInitializationContext.registerS2CPackets(vararg serializers: KSerializer<out S2CPacket<*>>,
+fun CommonModInitializationContext.registerS2CPackets(vararg serializers: KSerializer<out S2CPacket<*>>,
                                                       context: SerialModule = EmptyModule) {
     for (serializer in serializers) registerS2C(serializer, modId, context)
 }
