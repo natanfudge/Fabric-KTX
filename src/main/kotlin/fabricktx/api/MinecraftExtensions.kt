@@ -2,11 +2,9 @@
 
 package fabricktx.api
 
-import fabricktx.impl.throwDiagnosticMessage
 import net.fabricmc.fabric.api.container.ContainerProviderRegistry
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
-import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.ItemEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
@@ -29,8 +27,10 @@ import kotlin.math.sqrt
 val BlockPos.xz get() = "($x,$z)"
 val BlockPos.xyz get() = "(x = $x,y = $y,z = $z)"
 
+val String.mcId get() = Identifier("minecraft", this)
+
 fun BlockPos.distanceFrom(otherPos: Vec3d) =
-        sqrt((otherPos.x - this.x).squared() + (otherPos.y - this.y).squared() + (otherPos.z - this.z).squared())
+    sqrt((otherPos.x - this.x).squared() + (otherPos.y - this.y).squared() + (otherPos.z - this.z).squared())
 
 
 operator fun BlockPos.plus(other: BlockPos): BlockPos = this.add(other)
@@ -54,14 +54,17 @@ operator fun Vec3d.plus(other: Vec3d) = Vec3d(this.x + other.x, this.y + other.y
 operator fun Vec3d.minus(other: Vec3d): Vec3d = this.subtract(other)
 
 
-fun IWorld.play(soundEvent: SoundEvent, at: BlockPos,
-                ofCategory: SoundCategory, toPlayer: PlayerEntity? = null, volumeMultiplier: Float = 1.0f, pitchMultiplier: Float = 1.0f) {
+fun IWorld.play(
+    soundEvent: SoundEvent, at: BlockPos,
+    ofCategory: SoundCategory, toPlayer: PlayerEntity? = null, volumeMultiplier: Float = 1.0f, pitchMultiplier: Float = 1.0f
+) {
     playSound(toPlayer, at, soundEvent, ofCategory, volumeMultiplier, pitchMultiplier)
 }
 
 fun IWorld.getBlock(location: BlockPos): Block = getBlockState(location).block
 
-fun IWorld.setBlock(block: Block, pos: BlockPos, blockState: BlockState = block.defaultState): Boolean = world.setBlockState(pos, blockState)
+fun IWorld.setBlock(block: Block, pos: BlockPos, blockState: BlockState = block.defaultState): Boolean =
+    world.setBlockState(pos, blockState)
 
 val World.isServer get() = !isClient
 
@@ -71,11 +74,12 @@ fun IWorld.dropItemStack(stack: ItemStack, pos: BlockPos): ItemEntity = dropItem
 
 
 fun IWorld.dropItemStack(stack: ItemStack, pos: Vec3d): ItemEntity =
-        ItemEntity(world, pos.x, pos.y, pos.z, stack).also {
-            world.spawnEntity(it)
-        }
+    ItemEntity(world, pos.x, pos.y, pos.z, stack).also {
+        world.spawnEntity(it)
+    }
 
 
+fun Identifier.copy(namespace: String = this.namespace, path: String = this.path) = Identifier(namespace, path)
 
 
 inline fun Ingredient.matches(itemStack: ItemStack) = test(itemStack)
@@ -93,8 +97,8 @@ fun PlayerEntity.offerOrDrop(itemStack: ItemStack) = inventory.offerOrDrop(world
 fun PlayerEntity.openGui(id: Identifier, pos: BlockPos) = ContainerProviderRegistry.INSTANCE.openContainer(id, this)
 { it.writeBlockPos(pos) }
 
-operator fun VoxelShape.plus(other : VoxelShape) : VoxelShape = VoxelShapes.union(this,other)
+operator fun VoxelShape.plus(other: VoxelShape): VoxelShape = VoxelShapes.union(this, other)
 
-fun VoxelShape.union(vararg others :  VoxelShape) : VoxelShape = VoxelShapes.union(this,*others)
+fun VoxelShape.union(vararg others: VoxelShape): VoxelShape = VoxelShapes.union(this, *others)
 
 fun BlockPos.adjacentPositions() = listOf(up(), down(), south(), west(), north(), east())

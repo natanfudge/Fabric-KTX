@@ -8,7 +8,6 @@ import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 
-//TODO: continue attempt
 interface IBlock {
     fun onPlaced(world: World, pos: BlockPos, state: BlockState, placer: LivingEntity?, placedStack: ItemStack) {}
     fun onRemoved(state: BlockState, world: World, pos: BlockPos, newState: BlockState, moved: Boolean) {}
