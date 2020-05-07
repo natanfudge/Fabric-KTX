@@ -17,7 +17,7 @@ And add to dependencies:
 ```groovy
 dependencies {
     // [...]
-    modImplementation("com.lettuce.fudge:fabric-ktx:1.1.1+1.15.1")
+    modImplementation("com.lettuce.fudge:fabric-ktx:1.1.1+1.15.2")
 }
 ```
 

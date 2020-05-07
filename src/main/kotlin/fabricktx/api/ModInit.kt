@@ -15,7 +15,7 @@ import net.fabricmc.fabric.api.container.ContainerProviderRegistry
 import net.minecraft.block.Block
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.BlockEntityType
-import net.minecraft.client.gui.screen.ingame.AbstractContainerScreen
+import net.minecraft.client.gui.screen.ingame.ContainerScreen
 import net.minecraft.client.render.RenderLayer
 import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher
 import net.minecraft.client.render.block.entity.BlockEntityRenderer
@@ -120,7 +120,7 @@ class ClientModInitializationContext(@PublishedApi internal val modId: String) {
     fun <C : Container> registerScreen(
         screenId: Identifier,
         controllerFactory: (Int, PlayerInventory, BlockContext) -> C,
-        screenFactory: (C, PlayerEntity) -> AbstractContainerScreen<C>
+        screenFactory: (C, PlayerEntity) -> ContainerScreen<C>
     ) {
         ScreenProviderRegistry.INSTANCE.registerFactory(screenId) { syncId, _, player, buf ->
             screenFactory(
@@ -149,7 +149,7 @@ class BlockListRegistryContext(@PublishedApi internal val namespace: String, @Pu
     fun <BE : BlockEntity, T : StateBlock<BE>> T.withId(name: String, registerItem: Boolean = true) {
         (this as Block).withId(name, registerItem)
         Registry.register(
-            Registry.BLOCK_ENTITY,
+            Registry.BLOCK_ENTITY_TYPE,
             Identifier(namespace, name),
             this.blockEntityType(listOf(this)).also { blockEntityTypeRegistry[this] = it })
     }
@@ -162,7 +162,7 @@ class BlockListRegistryContext(@PublishedApi internal val namespace: String, @Pu
             registerBlockWithItem(block, Identifier(namespace, nameProvider(block)), registerItem)
         }
         if (blockEntityType != null) Registry.register(
-            Registry.BLOCK_ENTITY,
+            Registry.BLOCK_ENTITY_TYPE,
             Identifier(namespace, nameProvider(first())),
             blockEntityType
         )
